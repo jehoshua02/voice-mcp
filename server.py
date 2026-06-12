@@ -13,15 +13,25 @@ def beep(sound="Tink"):
 
 
 def tool_say(text, voice=None, rate=None):
+    import time
+    timings = {}
+    t0 = time.monotonic()
+
     beep("Hero")
+    timings["hero_beep_ms"] = round((time.monotonic() - t0) * 1000)
+
     cmd = ["say"]
     if voice:
         cmd.extend(["-v", voice])
     if rate:
         cmd.extend(["-r", str(rate)])
     cmd.append(text)
+    t1 = time.monotonic()
     subprocess.run(cmd, check=False)
-    return {"status": "spoken", "text": text}
+    timings["say_ms"] = round((time.monotonic() - t1) * 1000)
+
+    timings["total_ms"] = round((time.monotonic() - t0) * 1000)
+    return {"status": "spoken", "text": text, "timings": timings}
 
 
 def tool_list_voices(language=None):
@@ -46,38 +56,57 @@ def tool_list_voices(language=None):
 
 def tool_listen(timeout=10, phrase_time_limit=30):
     import speech_recognition as sr
+    import time
+
+    timings = {}
+    t0 = time.monotonic()
 
     r = sr.Recognizer()
     r.energy_threshold = 150
     r.dynamic_energy_threshold = True
     r.pause_threshold = 1.5
 
+    t1 = time.monotonic()
     with sr.Microphone(sample_rate=48000) as source:
+        timings["mic_open_ms"] = round((time.monotonic() - t1) * 1000)
+
+        t2 = time.monotonic()
         r.adjust_for_ambient_noise(source, duration=1)
+        timings["noise_calibration_ms"] = round((time.monotonic() - t2) * 1000)
+
         beep("Tink")
+        timings["ready_at_ms"] = round((time.monotonic() - t0) * 1000)
 
         try:
+            t3 = time.monotonic()
             audio = r.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
+            timings["recording_ms"] = round((time.monotonic() - t3) * 1000)
         except sr.WaitTimeoutError:
-            return {"error": "No speech detected", "text": None}
+            return {"error": "No speech detected", "text": None, "timings": timings}
 
     beep("Pop")
 
     import tempfile, os
     import mlx_whisper
 
+    t4 = time.monotonic()
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         tmp_path = f.name
         f.write(audio.get_wav_data())
+    timings["wav_write_ms"] = round((time.monotonic() - t4) * 1000)
 
     try:
+        t5 = time.monotonic()
         result = mlx_whisper.transcribe(tmp_path, path_or_hf_repo="mlx-community/whisper-base.en-mlx")
+        timings["transcription_ms"] = round((time.monotonic() - t5) * 1000)
+
         text = result.get("text", "").strip()
+        timings["total_ms"] = round((time.monotonic() - t0) * 1000)
         if not text:
-            return {"error": "Could not understand audio", "text": None}
-        return {"text": text, "error": None}
+            return {"error": "Could not understand audio", "text": None, "timings": timings}
+        return {"text": text, "error": None, "timings": timings}
     except Exception as e:
-        return {"error": f"Transcription error: {e}", "text": None}
+        return {"error": f"Transcription error: {e}", "text": None, "timings": timings}
     finally:
         os.unlink(tmp_path)
 
