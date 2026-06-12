@@ -23,6 +23,26 @@ def tool_say(text, voice=None, rate=None):
     return {"status": "spoken", "text": text}
 
 
+def tool_list_voices(language=None):
+    result = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, check=False)
+    voices = []
+    for line in result.stdout.strip().split("\n"):
+        parts = line.split("#")
+        description = parts[1].strip() if len(parts) > 1 else ""
+        name_lang = parts[0].strip()
+        name_parts = name_lang.rsplit(None, 1)
+        if len(name_parts) == 2:
+            name, lang = name_parts
+        else:
+            name, lang = name_parts[0], ""
+        name = name.strip()
+        lang = lang.strip()
+        if language and language.lower() not in lang.lower() and language.lower() not in name.lower():
+            continue
+        voices.append({"name": name, "language": lang, "sample": description})
+    return {"voices": voices, "count": len(voices)}
+
+
 def tool_listen(timeout=10, phrase_time_limit=30):
     import speech_recognition as sr
 
@@ -66,6 +86,16 @@ TOOLS = [
         },
     },
     {
+        "name": "list_voices",
+        "description": "List available macOS text-to-speech voices with their language and sample phrase. Use to pick the right voice for a scenario (e.g. a British accent, a novelty voice, a specific language).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "language": {"type": "string", "description": "Filter by language code or name (e.g. 'en_US', 'fr', 'Japanese'). Optional — returns all voices if omitted."},
+            },
+        },
+    },
+    {
         "name": "listen",
         "description": "Listen to microphone input and transcribe speech to text using local Whisper. Returns transcribed text. Use for voice input and voice conversations.",
         "inputSchema": {
@@ -98,6 +128,8 @@ def handle_request(request):
 
         if name == "say":
             result = tool_say(args["text"], args.get("voice"), args.get("rate"))
+        elif name == "list_voices":
+            result = tool_list_voices(args.get("language"))
         elif name == "listen":
             result = tool_listen(args.get("timeout", 10), args.get("phrase_time_limit", 30))
         else:
