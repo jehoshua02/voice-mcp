@@ -13,6 +13,7 @@ def beep(sound="Tink"):
 
 
 def tool_say(text, voice=None, rate=None):
+    beep("Hero")
     cmd = ["say"]
     if voice:
         cmd.extend(["-v", voice])

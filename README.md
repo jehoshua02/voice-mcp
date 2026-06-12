@@ -79,6 +79,7 @@ Returns `{"voices": [...], "count": N}`. Each voice has `name`, `language`, and 
 
 | Sound | Meaning |
 |-------|---------|
+| Hero | Claude is about to speak |
 | Tink | Mic is ready, speak now |
 | Pop | Recording captured, transcribing |
 
