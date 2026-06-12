@@ -39,6 +39,7 @@ Add to `~/.claude/settings.json` under `permissions.allow`:
 ```json
 "mcp__voice__say",
 "mcp__voice__listen",
+"mcp__voice__converse",
 "mcp__voice__list_voices"
 ```
 
@@ -53,6 +54,20 @@ Speak text aloud using macOS text-to-speech.
 | `text` | string | Yes | Text to speak |
 | `voice` | string | No | Voice name (e.g. Samantha, Daniel, Zarvox) |
 | `rate` | integer | No | Words per minute (default ~175) |
+
+### `converse`
+
+Speak text then immediately listen for a response. Combines `say` + `listen` in one call to eliminate model round-trip latency. Use this for voice conversations.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `text` | string | Yes | Text to speak |
+| `voice` | string | No | Voice name |
+| `rate` | integer | No | Words per minute (default ~175) |
+| `timeout` | integer | No | Seconds to wait for speech after speaking (default 10) |
+| `phrase_time_limit` | integer | No | Max seconds of speech (default 30) |
+
+Returns `{"spoken": "what was said", "heard": "transcribed reply", "error": null}`.
 
 ### `listen`
 

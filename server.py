@@ -111,6 +111,28 @@ def tool_listen(timeout=10, phrase_time_limit=30):
         os.unlink(tmp_path)
 
 
+def tool_converse(text, voice=None, rate=None, timeout=10, phrase_time_limit=30):
+    import time
+    timings = {}
+    t0 = time.monotonic()
+
+    say_result = tool_say(text, voice, rate)
+    timings["say"] = say_result["timings"]
+    timings["say_total_ms"] = say_result["timings"]["total_ms"]
+
+    listen_result = tool_listen(timeout, phrase_time_limit)
+    timings["listen"] = listen_result.get("timings", {})
+    timings["listen_total_ms"] = timings["listen"].get("total_ms", 0)
+    timings["total_ms"] = round((time.monotonic() - t0) * 1000)
+
+    return {
+        "spoken": text,
+        "heard": listen_result.get("text"),
+        "error": listen_result.get("error"),
+        "timings": timings,
+    }
+
+
 TOOLS = [
     {
         "name": "say",
@@ -133,6 +155,21 @@ TOOLS = [
             "properties": {
                 "language": {"type": "string", "description": "Filter by language code or name (e.g. 'en_US', 'fr', 'Japanese'). Optional — returns all voices if omitted."},
             },
+        },
+    },
+    {
+        "name": "converse",
+        "description": "Speak text aloud then immediately listen for a response. Combines say + listen in one call to eliminate model round-trip latency. Use this for voice conversations instead of calling say and listen separately.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "Text to speak aloud"},
+                "voice": {"type": "string", "description": "Voice name. Optional."},
+                "rate": {"type": "integer", "description": "Words per minute. Optional."},
+                "timeout": {"type": "integer", "description": "Seconds to wait for speech after speaking. Default 10.", "default": 10},
+                "phrase_time_limit": {"type": "integer", "description": "Max seconds of speech to capture. Default 30.", "default": 30},
+            },
+            "required": ["text"],
         },
     },
     {
@@ -170,6 +207,8 @@ def handle_request(request):
             result = tool_say(args["text"], args.get("voice"), args.get("rate"))
         elif name == "list_voices":
             result = tool_list_voices(args.get("language"))
+        elif name == "converse":
+            result = tool_converse(args["text"], args.get("voice"), args.get("rate"), args.get("timeout", 10), args.get("phrase_time_limit", 30))
         elif name == "listen":
             result = tool_listen(args.get("timeout", 10), args.get("phrase_time_limit", 30))
         else:
