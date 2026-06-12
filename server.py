@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
 """Voice MCP server — exposes say and listen as tools."""
 
+import fcntl
 import subprocess
 import sys
 import json
 
 SOUNDS_DIR = "/System/Library/Sounds"
+VOICE_LOCK = "/tmp/claude-voice.lock"
+
+
+def acquire_voice_lock():
+    f = open(VOICE_LOCK, "w")
+    fcntl.flock(f, fcntl.LOCK_EX)
+    return f
+
+
+def release_voice_lock(f):
+    fcntl.flock(f, fcntl.LOCK_UN)
+    f.close()
 
 
 def beep(sound="Tink"):
@@ -204,13 +217,25 @@ def handle_request(request):
         args = request["params"].get("arguments", {})
 
         if name == "say":
-            result = tool_say(args["text"], args.get("voice"), args.get("rate"))
+            lock = acquire_voice_lock()
+            try:
+                result = tool_say(args["text"], args.get("voice"), args.get("rate"))
+            finally:
+                release_voice_lock(lock)
         elif name == "list_voices":
             result = tool_list_voices(args.get("language"))
         elif name == "converse":
-            result = tool_converse(args["text"], args.get("voice"), args.get("rate"), args.get("timeout", 10), args.get("phrase_time_limit", 30))
+            lock = acquire_voice_lock()
+            try:
+                result = tool_converse(args["text"], args.get("voice"), args.get("rate"), args.get("timeout", 10), args.get("phrase_time_limit", 30))
+            finally:
+                release_voice_lock(lock)
         elif name == "listen":
-            result = tool_listen(args.get("timeout", 10), args.get("phrase_time_limit", 30))
+            lock = acquire_voice_lock()
+            try:
+                result = tool_listen(args.get("timeout", 10), args.get("phrase_time_limit", 30))
+            finally:
+                release_voice_lock(lock)
         else:
             return {"error": {"code": -32601, "message": f"Unknown tool: {name}"}}
 
