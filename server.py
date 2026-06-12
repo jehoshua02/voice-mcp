@@ -9,7 +9,7 @@ SOUNDS_DIR = "/System/Library/Sounds"
 
 
 def beep(sound="Tink"):
-    subprocess.run(["afplay", f"{SOUNDS_DIR}/{sound}.aiff"], check=False)
+    subprocess.Popen(["afplay", f"{SOUNDS_DIR}/{sound}.aiff"])
 
 
 def tool_say(text, voice=None, rate=None):
