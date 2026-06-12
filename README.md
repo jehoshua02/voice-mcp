@@ -18,12 +18,13 @@ bash setup.sh
 
 ## Configure Claude Code
 
-Add to your `~/.claude/settings.json` or project `.claude/settings.json`:
+Add to `~/.claude.json` under `mcpServers`:
 
 ```json
 {
   "mcpServers": {
     "voice": {
+      "type": "stdio",
       "command": "/path/to/voice-mcp/.venv/bin/python",
       "args": ["/path/to/voice-mcp/server.py"]
     }
@@ -31,21 +32,31 @@ Add to your `~/.claude/settings.json` or project `.claude/settings.json`:
 }
 ```
 
+### Auto-allow permissions
+
+Add to `~/.claude/settings.json` under `permissions.allow`:
+
+```json
+"mcp__voice__say",
+"mcp__voice__listen",
+"mcp__voice__list_voices"
+```
+
 ## Tools
 
 ### `say`
 
-Speak text aloud.
+Speak text aloud using macOS text-to-speech.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `text` | string | Yes | Text to speak |
-| `voice` | string | No | Voice name (e.g. Samantha, Daniel) |
+| `voice` | string | No | Voice name (e.g. Samantha, Daniel, Zarvox) |
 | `rate` | integer | No | Words per minute (default ~175) |
 
 ### `listen`
 
-Listen to microphone and transcribe speech.
+Listen to microphone and transcribe speech to text using local Whisper.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -54,13 +65,25 @@ Listen to microphone and transcribe speech.
 
 Returns `{"text": "transcribed speech", "error": null}` on success.
 
+### `list_voices`
+
+List available macOS TTS voices with language and sample phrase.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `language` | string | No | Filter by language code or name (e.g. `en_US`, `fr`, `Japanese`) |
+
+Returns `{"voices": [...], "count": N}`. Each voice has `name`, `language`, and `sample` fields.
+
 ## Audio Cues
 
-- **Tink** — mic is ready, speak now
-- **Pop** — recording captured, transcribing
+| Sound | Meaning |
+|-------|---------|
+| Tink | Mic is ready, speak now |
+| Pop | Recording captured, transcribing |
 
 ## How it works
 
 - **TTS**: macOS built-in `say` command
-- **STT**: OpenAI Whisper `base.en` model running locally (no API calls)
+- **STT**: OpenAI Whisper `base.en` model running locally — no API calls, fully offline
 - **MCP**: JSON-RPC over stdio (MCP protocol 2024-11-05)
