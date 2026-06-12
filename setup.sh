@@ -22,10 +22,10 @@ if [[ ! -d "$VENV_DIR" ]]; then
 fi
 
 echo "Installing dependencies..."
-"$VENV_DIR/bin/pip" install -q SpeechRecognition pyaudio openai-whisper soundfile
+"$VENV_DIR/bin/pip" install -q SpeechRecognition pyaudio mlx-whisper
 
-echo "Pre-downloading whisper base.en model..."
-"$VENV_DIR/bin/python" -c "import whisper; whisper.load_model('base.en')"
+echo "Pre-downloading mlx-whisper base.en model..."
+"$VENV_DIR/bin/python" -c "from huggingface_hub import snapshot_download; snapshot_download('mlx-community/whisper-base.en-mlx')"
 
 echo "Setup complete."
 echo "Add to Claude Code settings.json:"

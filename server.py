@@ -63,13 +63,23 @@ def tool_listen(timeout=10, phrase_time_limit=30):
 
     beep("Pop")
 
+    import tempfile, os
+    import mlx_whisper
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        tmp_path = f.name
+        f.write(audio.get_wav_data())
+
     try:
-        text = r.recognize_whisper(audio, model="base.en")
-        return {"text": text.strip(), "error": None}
-    except sr.UnknownValueError:
-        return {"error": "Could not understand audio", "text": None}
-    except sr.RequestError as e:
+        result = mlx_whisper.transcribe(tmp_path, path_or_hf_repo="mlx-community/whisper-base.en-mlx")
+        text = result.get("text", "").strip()
+        if not text:
+            return {"error": "Could not understand audio", "text": None}
+        return {"text": text, "error": None}
+    except Exception as e:
         return {"error": f"Transcription error: {e}", "text": None}
+    finally:
+        os.unlink(tmp_path)
 
 
 TOOLS = [
